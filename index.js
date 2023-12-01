@@ -1,11 +1,10 @@
 const axios = require('axios');
-const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 const urls = [
-  '#',
-  '#',
-  '#',
+  process.env.URL_1,
+  process.env.URL_2,
+  process.env.URL_3
 ];
 
 const teamsWebhookUrl = process.env.TEAMS_WEBHOOK_URL;
@@ -22,14 +21,8 @@ async function sendTeamsNotification(message) {
 
 async function checkWebsite(url) {
   try {
+    // Perform a simple HTTP HEAD request to check website availability
     await axios.head(url);
-
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(url);
-    
-    await page.click('input[type="submit"][value="Login"]');
-    await browser.close();
 
     console.log(`${url} is functioning.`);
   } catch (error) {
