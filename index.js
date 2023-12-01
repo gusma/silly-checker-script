@@ -1,4 +1,6 @@
 const axios = require('axios');
+const jsdom = require('jsdom');
+const { JSDOM } = jsdom;
 require('dotenv').config();
 
 const urls = [
@@ -19,12 +21,13 @@ async function sendTeamsNotification(message) {
   }
 }
 
-async function checkWebsite(url) {
+async function checkAndSubmit(url) {
   try {
-    // Perform a simple HTTP HEAD request to check website availability
     await axios.head(url);
-
+    
     console.log(`${url} is functioning.`);
+
+    await submitForm(url);
   } catch (error) {
     const errorMessage = `${url} is not functioning. Error: ${error.message}`;
     console.error(errorMessage);
@@ -33,9 +36,33 @@ async function checkWebsite(url) {
   }
 }
 
+async function submitForm(url) {
+  try {
+    const response = await axios.get(url);
+    const dom = new JSDOM(response.data);
+
+    const submitButton = dom.window.document.querySelector('input[type="submit"]');
+    
+    if (submitButton) {
+      const event = dom.window.document.createEvent('Event');
+      event.initEvent('submit', false, true);
+      submitButton.dispatchEvent(event);
+
+      console.log(`${url} form submission successful.`);
+    } else {
+      console.log(`${url} does not have a submit button.`);
+    }
+  } catch (error) {
+    const errorMessage = `${url} form submission failed. Error: ${error.message}`;
+    console.error(errorMessage);
+
+    await sendTeamsNotification(errorMessage);
+  }
+}
+
 async function main() {
   for (const url of urls) {
-    await checkWebsite(url);
+    await checkAndSubmit(url);
   }
 }
 
