@@ -2,6 +2,7 @@ const axios = require('axios');
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 require('dotenv').config();
+const fs = require('fs');
 
 const urls = [
   process.env.URL_1,
@@ -10,6 +11,11 @@ const urls = [
 ];
 
 const teamsWebhookUrl = process.env.TEAMS_WEBHOOK_URL;
+
+function logToFile(message) {
+  const logFilePath = '/path/to/logfile.log';
+  fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
+}
 
 async function sendTeamsNotification(message) {
   try {
@@ -25,13 +31,13 @@ async function checkAndSubmit(url) {
   try {
     await axios.head(url);
     
-    console.log(`${url} is functioning.`);
+    logToFile(`${url} is functioning.`);
 
     await submitForm(url);
   } catch (error) {
     const errorMessage = `${url} is not functioning. Error: ${error.message}`;
-    console.error(errorMessage);
-
+    logToFile(errorMessage);
+    
     await sendTeamsNotification(errorMessage);
   }
 }
