@@ -18,7 +18,7 @@ process.env.HTTP_PROXY = '';
 process.env.HTTPS_PROXY = '';
 
 function logToFile(message) {
-  const logFilePath = 'logfile.log';
+  const logFilePath = path.resolve(__dirname, './logfile.log');
   fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
 }
 
@@ -32,13 +32,14 @@ async function sendTeamsNotification(message) {
       }
     );
   } catch (error) {
-    console.error(`Error sending Teams notification: ${error.message}`);
+    const errorSendingMessage = `Error sending Teams notification: ${error.message}`;
+    logToFile(errorSendingMessage);
   }
 }
 
 async function checkAndSubmit(url) {
   if (!url) {
-    console.error('URL is undefined.');
+    logToFile('URLs to check on are undefined.');
     return;
   }
 
@@ -46,7 +47,6 @@ async function checkAndSubmit(url) {
     await axios.head(url);
     const successMessage = `${url} is functioning.`;
     logToFile(successMessage);
-    console.log(`${new Date().toISOString()}: ${successMessage}`);
     await submitForm(url);
   } catch (error) {
     const errorMessage = `${url} is not functioning. Error: ${error.message}`;
@@ -67,13 +67,15 @@ async function submitForm(url) {
       event.initEvent('submit', false, true);
       submitButton.dispatchEvent(event);
 
-      console.log(`${new Date().toISOString()}: ${url} form submission successful.`);
+      const successfulSubmit = `${url} form submission successful.`;
+      logToFile(successfulSubmit)
     } else {
-      console.log(`${new Date().toISOString()}: ${url} does not have a submit button.`);
+      const failedSubmit = `${url} does not have a submit button.`;
+      logToFile(failedSubmit)
     }
   } catch (error) {
-    const errorMessage = `${new Date().toISOString()}: ${url} form submission failed. Error: ${error.message}`;
-    console.error(errorMessage);
+    const errorMessage = `${url} form submission failed. Error: ${error.message}`;
+    logToFile(errorMessage);
 
     await sendTeamsNotification(errorMessage);
   }
