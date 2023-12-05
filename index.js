@@ -1,8 +1,12 @@
 const axios = require('axios');
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
-require('dotenv').config();
 const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: path.resolve(__dirname, './.env') });
 
 const urls = [
   process.env.URL_1,
@@ -10,34 +14,43 @@ const urls = [
   process.env.URL_3
 ];
 
-const teamsWebhookUrl = process.env.TEAMS_WEBHOOK_URL;
+process.env.HTTP_PROXY = '';
+process.env.HTTPS_PROXY = '';
 
 function logToFile(message) {
-  const logFilePath = '/path/to/logfile.log';
+  const logFilePath = 'logfile.log';
   fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
 }
 
 async function sendTeamsNotification(message) {
   try {
-    await axios.post(teamsWebhookUrl, {
-      text: message,
-    });
+    await axios.post(
+      process.env.TEAMS_WEBHOOK_URL,
+      { text: message },
+      {
+        httpsAgent: new https.Agent({ keepAlive: true }),
+      }
+    );
   } catch (error) {
     console.error(`Error sending Teams notification: ${error.message}`);
   }
 }
 
 async function checkAndSubmit(url) {
+  if (!url) {
+    console.error('URL is undefined.');
+    return;
+  }
+
   try {
     await axios.head(url);
-    
-    logToFile(`${url} is functioning.`);
-
+    const successMessage = `${url} is functioning.`;
+    logToFile(successMessage);
+    console.log(`${new Date().toISOString()}: ${successMessage}`);
     await submitForm(url);
   } catch (error) {
     const errorMessage = `${url} is not functioning. Error: ${error.message}`;
     logToFile(errorMessage);
-    
     await sendTeamsNotification(errorMessage);
   }
 }
@@ -54,12 +67,12 @@ async function submitForm(url) {
       event.initEvent('submit', false, true);
       submitButton.dispatchEvent(event);
 
-      console.log(`${url} form submission successful.`);
+      console.log(`${new Date().toISOString()}: ${url} form submission successful.`);
     } else {
-      console.log(`${url} does not have a submit button.`);
+      console.log(`${new Date().toISOString()}: ${url} does not have a submit button.`);
     }
   } catch (error) {
-    const errorMessage = `${url} form submission failed. Error: ${error.message}`;
+    const errorMessage = `${new Date().toISOString()}: ${url} form submission failed. Error: ${error.message}`;
     console.error(errorMessage);
 
     await sendTeamsNotification(errorMessage);
